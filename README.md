@@ -4,6 +4,14 @@ An AI-powered web application that helps job seekers improve their resumes and i
 
 The platform analyzes resumes against a job description, provides ATS-style feedback, generates AI-powered interview questions, evaluates user responses, and creates a detailed interview performance report.
 
+
+
+### Home Page
+![Home Page](./screenshots/home.png)
+
+
+### Mock Interview
+![Mock Interview](./screenshots/interview.png)
 ## Features
 
 - Resume Upload (PDF/DOCX)
