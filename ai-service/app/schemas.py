@@ -67,3 +67,15 @@ class FinalReportResponse(BaseModel):
     strengths: List[str] = Field(default_factory=list)
     improvements: List[str] = Field(default_factory=list)
     summary: str = ''
+
+
+# ---------- RAG debug ----------
+
+class RetrieveDebugRequest(BaseModel):
+    query: str
+    top_k: Optional[int] = None
+
+
+class RetrieveDebugResponse(BaseModel):
+    query: str
+    chunks: List[str]

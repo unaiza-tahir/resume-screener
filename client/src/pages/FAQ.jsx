@@ -33,15 +33,15 @@ const faqs = [
 
 function FAQItem({ item, isOpen, onToggle }) {
   return (
-    <div className="ui-card overflow-hidden">
+    <div className="rounded-2xl overflow-hidden bg-gradient-to-b from-white/[0.06] to-white/[0.02] border border-white/10 backdrop-blur-sm transition-colors duration-200 hover:border-white/20">
       <button
         onClick={onToggle}
         className="focus-ring w-full flex items-center justify-between gap-4 text-left px-6 py-5"
         aria-expanded={isOpen}
       >
-        <span className="font-semibold text-[#1F2937]">{item.q}</span>
+        <span className="font-semibold text-white">{item.q}</span>
         <span
-          className={`shrink-0 w-7 h-7 rounded-full bg-[#E6EEF1] text-[#0F6483] flex items-center justify-center transition-transform duration-200 ${
+          className={`shrink-0 w-7 h-7 rounded-full bg-gradient-to-br from-[#2DD4BF]/25 to-transparent border border-white/10 text-[#5EEAD4] flex items-center justify-center transition-transform duration-200 ${
             isOpen ? 'rotate-45' : ''
           }`}
         >
@@ -56,7 +56,7 @@ function FAQItem({ item, isOpen, onToggle }) {
         }`}
       >
         <div className="overflow-hidden">
-          <p className="px-6 pb-5 text-sm text-[#6B7280] leading-relaxed">{item.a}</p>
+          <p className="px-6 pb-5 text-sm text-slate-400 leading-relaxed">{item.a}</p>
         </div>
       </div>
     </div>
@@ -67,25 +67,30 @@ export default function FAQ() {
   const [openIndex, setOpenIndex] = useState(0);
 
   return (
-    <main className="max-w-3xl mx-auto px-6 py-14 bg-white">
-      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#0F6483] bg-[#E6EEF1] rounded-full px-3 py-1">
-        FAQ
-      </span>
+    <main className="relative max-w-3xl mx-auto px-6 py-14 bg-[#0A1015] text-slate-200 min-h-screen overflow-hidden">
+      {/* ambient glow */}
+      <div className="pointer-events-none absolute -top-24 right-0 w-96 h-96 bg-[#0F6483]/20 blur-[120px] rounded-full" />
 
-      <h1 className="mt-4 text-3xl font-bold text-[#1F2937]">Frequently Asked Questions</h1>
-      <p className="mt-3 text-[#6B7280]">
-        Everything you need to know about using the AI Resume Screener.
-      </p>
+      <div className="relative">
+        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-[#5EEAD4] bg-[#2DD4BF]/10 border border-[#2DD4BF]/20 rounded-full px-3 py-1">
+          FAQ
+        </span>
 
-      <div className="mt-8 space-y-3">
-        {faqs.map((item, i) => (
-          <FAQItem
-            key={item.q}
-            item={item}
-            isOpen={openIndex === i}
-            onToggle={() => setOpenIndex(openIndex === i ? -1 : i)}
-          />
-        ))}
+        <h1 className="mt-4 text-3xl font-bold text-white">Frequently Asked Questions</h1>
+        <p className="mt-3 text-slate-400">
+          Everything you need to know about using the AI Resume Screener.
+        </p>
+
+        <div className="mt-8 space-y-3">
+          {faqs.map((item, i) => (
+            <FAQItem
+              key={item.q}
+              item={item}
+              isOpen={openIndex === i}
+              onToggle={() => setOpenIndex(openIndex === i ? -1 : i)}
+            />
+          ))}
+        </div>
       </div>
     </main>
   );

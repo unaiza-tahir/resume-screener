@@ -5,6 +5,7 @@ from typing import Any, Dict, List
 from groq import Groq
 
 from . import config
+from . import retriever
 
 
 class AIAnalysisError(Exception):
@@ -70,14 +71,32 @@ def _as_string_list(value: Any) -> List[str]:
 
 
 # ---------------------------------------------------------------------------
+# RAG: retrieval helper
+# ---------------------------------------------------------------------------
+
+def _retrieve_context(query: str) -> str:
+    """
+    Retrieve the knowledge-base chunks most relevant to `query` and format
+    them as a block of grounding guidelines for the LLM prompt. This is the
+    "retrieval" step of the Retrieval-Augmented Generation pipeline: instead
+    of relying only on what the model recalls from training, we explicitly
+    hand it curated, consistent domain guidance relevant to this specific
+    resume / job description / answer.
+    """
+    chunks = retriever.retrieve(query)
+    return retriever.format_context(chunks)
+
+
+# ---------------------------------------------------------------------------
 # Resume Analysis
 # ---------------------------------------------------------------------------
 
 ANALYSIS_SYSTEM_PROMPT = (
     "You are an expert technical recruiter and ATS (Applicant Tracking System) specialist. "
     "You compare a candidate's resume against a job description and return an honest, specific, "
-    "constructive analysis. You always respond with ONLY a single valid JSON object — no markdown "
-    "fences, no commentary before or after it."
+    "constructive analysis. You are given a set of retrieved guidelines to ground your judgment — "
+    "apply them where relevant instead of relying only on general assumptions. You always respond "
+    "with ONLY a single valid JSON object — no markdown fences, no commentary before or after it."
 )
 
 MAX_RESUME_CHARS = 12000
@@ -88,7 +107,14 @@ def analyze_resume(resume_text: str, job_description: str) -> Dict[str, Any]:
     resume = resume_text[:MAX_RESUME_CHARS]
     jd = job_description[:MAX_JOB_DESC_CHARS]
 
+    # RAG retrieval: pull the most relevant ATS/resume guidelines for this
+    # specific resume + job description pair.
+    retrieved_context = _retrieve_context(f"{jd}\n{resume[:2000]}")
+
     user_prompt = f"""Compare this resume against this job description.
+
+RETRIEVED GUIDELINES (apply where relevant):
+{retrieved_context}
 
 RESUME:
 \"\"\"
@@ -133,15 +159,23 @@ Return ONLY a JSON object with this exact shape (no extra keys, no markdown):
 # ---------------------------------------------------------------------------
 
 def generate_questions(resume_text: str, job_description: str) -> List[Dict[str, str]]:
+    retrieved_context = _retrieve_context(
+        f"interview questions for: {job_description[:1000]}"
+    )
+
     system_prompt = (
         "You are an experienced technical interviewer. You write sharp, specific interview "
         "questions grounded in the candidate's actual resume and the job description — never "
-        "generic filler questions. Respond with ONLY a JSON object, no markdown."
+        "generic filler questions. You are given retrieved guidelines on effective interview "
+        "question design; follow them. Respond with ONLY a JSON object, no markdown."
     )
 
     user_prompt = f"""Based on this resume and job description, write exactly 5 interview questions:
 - 3 technical/role-specific questions (reference actual skills/projects from the resume where possible)
 - 2 behavioral questions (teamwork, problem-solving, growth)
+
+RETRIEVED GUIDELINES (apply where relevant):
+{retrieved_context}
 
 RESUME:
 \"\"\"
@@ -182,14 +216,21 @@ Return ONLY:
 
 
 def evaluate_answer(question: str, answer: str, job_description: str) -> Dict[str, Any]:
+    retrieved_context = _retrieve_context(f"{question}\n{answer[:1000]}")
+
     system_prompt = (
-        "You are a fair, encouraging technical interviewer evaluating a candidate's spoken/typed "
-        "answer. Respond with ONLY a JSON object, no markdown."
+        "You are a fair, encouraging technical interviewer evaluating a candidate's typed "
+        "answer. You are given retrieved evaluation guidelines (e.g. STAR method, communication "
+        "and confidence signals, scoring consistency) — apply them when scoring. Respond with "
+        "ONLY a JSON object, no markdown."
     )
 
     user_prompt = f"""Question: "{question}"
 Candidate's answer: "{answer[:3000]}"
 Job context: "{job_description[:1500]}"
+
+RETRIEVED EVALUATION GUIDELINES (apply where relevant):
+{retrieved_context}
 
 Evaluate this answer. Return ONLY:
 {{
@@ -215,14 +256,22 @@ def generate_final_report(questions: List[Dict[str, Any]]) -> Dict[str, Any]:
         for i, q in enumerate(answered)
     )
 
+    retrieved_context = _retrieve_context(
+        "final interview report scoring and summary guidelines"
+    )
+
     system_prompt = (
-        "You are a hiring manager summarizing a completed interview. Respond with ONLY a JSON "
-        "object, no markdown."
+        "You are a hiring manager summarizing a completed interview. You are given retrieved "
+        "guidelines on writing balanced, specific final reports — follow them. Respond with "
+        "ONLY a JSON object, no markdown."
     )
 
     user_prompt = f"""Here is the full interview transcript with per-question scores:
 
 {transcript}
+
+RETRIEVED GUIDELINES (apply where relevant):
+{retrieved_context}
 
 Write a final report. Return ONLY:
 {{

@@ -15,15 +15,15 @@ import {
 } from '../utils/pdfReport';
 
 function ScoreRing({ label, score }) {
-  const color = score >= 75 ? '#9E8B90' : score >= 50 ? '#AD6F6F' : '#DC2626';
+  const color = score >= 75 ? '#2DD4BF' : score >= 50 ? '#E89EAB' : '#F87171';
   const circumference = 2 * Math.PI * 38;
   const offset = circumference - (score / 100) * circumference;
 
   return (
     <div className="flex flex-col items-center">
       <div className="relative w-24 h-24">
-        <svg viewBox="0 0 96 96" className="w-24 h-24 -rotate-90">
-          <circle cx="48" cy="48" r="38" fill="none" stroke="#F3F4F6" strokeWidth="9" />
+        <svg viewBox="0 0 96 96" className="w-24 h-24 -rotate-90 drop-shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
+          <circle cx="48" cy="48" r="38" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="9" />
           <circle
             cx="48"
             cy="48"
@@ -34,14 +34,14 @@ function ScoreRing({ label, score }) {
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={offset}
-            style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+            style={{ transition: 'stroke-dashoffset 0.6s ease', filter: `drop-shadow(0 0 6px ${color}80)` }}
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-xl font-bold text-[#1F2937]">{score}%</span>
+          <span className="text-xl font-bold text-white">{score}%</span>
         </div>
       </div>
-      <span className="mt-2 text-sm font-medium text-[#374151] text-center">{label}</span>
+      <span className="mt-2 text-sm font-medium text-slate-400 text-center">{label}</span>
     </div>
   );
 }
@@ -49,11 +49,11 @@ function ScoreRing({ label, score }) {
 function SkillChips({ items, tone }) {
   const styles =
     tone === 'good'
-      ? 'bg-[#ECE7E8] text-[#9E8B90] border-[#E5DCDD]'
-      : 'bg-[#F3E3E3] text-[#8F5A5A] border-[#E9D9DE]';
+      ? 'bg-[#2DD4BF]/10 text-[#5EEAD4] border-[#2DD4BF]/25'
+      : 'bg-[#E89EAB]/10 text-[#F4C6CE] border-[#E89EAB]/25';
 
   if (!items || items.length === 0) {
-    return <p className="text-sm text-[#6B7280]">None found.</p>;
+    return <p className="text-sm text-slate-500">None found.</p>;
   }
 
   return (
@@ -69,13 +69,13 @@ function SkillChips({ items, tone }) {
 
 function BulletList({ items, icon }) {
   if (!items || items.length === 0) {
-    return <p className="text-sm text-[#6B7280]">Nothing to show.</p>;
+    return <p className="text-sm text-slate-500">Nothing to show.</p>;
   }
   return (
     <ul className="space-y-2">
       {items.map((it, i) => (
-        <li key={i} className="flex items-start gap-2 text-sm text-[#374151]">
-          <span className="mt-1 shrink-0 text-[#9E8B90]">{icon}</span>
+        <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+          <span className="mt-1 shrink-0 text-[#5EEAD4]">{icon}</span>
           <span>{it}</span>
         </li>
       ))}
@@ -148,9 +148,12 @@ export default function ResultsPanel({ result }) {
     </svg>
   );
 
+  const cardClass =
+    'rounded-2xl p-6 bg-gradient-to-b from-white/[0.06] to-white/[0.02] border border-white/10 backdrop-blur-sm shadow-[0_20px_45px_-20px_rgba(0,0,0,0.6)]';
+
   return (
     <div className="mt-8 space-y-6">
-      <div className="ui-card p-6">
+      <div className={cardClass}>
         <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6">
           <div className="flex flex-wrap justify-center gap-8">
             <ScoreRing label="Matching %" score={result.matchScore} />
@@ -159,7 +162,7 @@ export default function ResultsPanel({ result }) {
           </div>
           <button
             onClick={() => downloadReport(result)}
-            className="focus-ring shrink-0 inline-flex items-center gap-2 bg-white border border-[#E5E7EB] hover:border-[#9E8B90] text-[#1F2937] text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
+            className="focus-ring shrink-0 inline-flex items-center gap-2 bg-white/5 border border-white/15 backdrop-blur-sm hover:bg-white/10 hover:border-[#2DD4BF]/40 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all duration-200"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M7 10l5 5 5-5" /><path d="M12 15V3" />
@@ -168,34 +171,34 @@ export default function ResultsPanel({ result }) {
           </button>
         </div>
         {result.summary ? (
-          <p className="mt-6 text-sm text-[#374151] leading-relaxed border-t border-[#E5E7EB] pt-5">{result.summary}</p>
+          <p className="mt-6 text-sm text-slate-300 leading-relaxed border-t border-white/10 pt-5">{result.summary}</p>
         ) : null}
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="ui-card p-6">
-          <h3 className="font-semibold text-[#1F2937] mb-3">Matching Skills</h3>
+        <div className={cardClass}>
+          <h3 className="font-semibold text-white mb-3">Matching Skills</h3>
           <SkillChips items={result.matchingSkills} tone="good" />
         </div>
-        <div className="ui-card p-6">
-          <h3 className="font-semibold text-[#1F2937] mb-3">Missing Skills</h3>
+        <div className={cardClass}>
+          <h3 className="font-semibold text-white mb-3">Missing Skills</h3>
           <SkillChips items={result.missingSkills} tone="bad" />
         </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="ui-card p-6">
-          <h3 className="font-semibold text-[#1F2937] mb-3">Strengths</h3>
+        <div className={cardClass}>
+          <h3 className="font-semibold text-white mb-3">Strengths</h3>
           <BulletList items={result.strengths} icon={checkIcon} />
         </div>
-        <div className="ui-card p-6">
-          <h3 className="font-semibold text-[#1F2937] mb-3">Weaknesses</h3>
+        <div className={cardClass}>
+          <h3 className="font-semibold text-white mb-3">Weaknesses</h3>
           <BulletList items={result.weaknesses} icon={warnIcon} />
         </div>
       </div>
 
-      <div className="ui-card p-6 bg-[#F8FAFC]">
-        <h3 className="font-semibold text-[#1F2937] mb-3">Suggestions to Improve</h3>
+      <div className="rounded-2xl p-6 bg-gradient-to-br from-[#123645] to-[#0A1F27] border border-white/10 shadow-[0_20px_45px_-20px_rgba(0,0,0,0.6)]">
+        <h3 className="font-semibold text-white mb-3">Suggestions to Improve</h3>
         <BulletList items={result.suggestions} icon={bulbIcon} />
       </div>
     </div>

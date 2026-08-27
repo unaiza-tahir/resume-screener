@@ -11,3 +11,7 @@ ALLOWED_ORIGINS = os.environ.get(
     'ALLOWED_ORIGINS',
     'http://localhost:8000,http://127.0.0.1:8000'
 ).split(',')
+
+# Number of knowledge-base chunks the retriever returns per query for the
+# RAG pipeline (see app/retriever.py).
+RAG_TOP_K = int(os.environ.get('RAG_TOP_K', '3'))

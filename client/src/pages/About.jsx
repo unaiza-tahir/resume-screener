@@ -17,42 +17,55 @@ const items = [
     title: 'AI-powered feedback',
     desc: 'A large language model reads both documents and highlights matching skills, missing skills, strengths, and weaknesses, with suggestions to improve your resume.',
   },
-  
+
 ];
 
 export default function About() {
   return (
-    <main className="max-w-4xl mx-auto px-6 py-14 bg-white">
-      
+    <main className="relative max-w-4xl mx-auto px-6 py-14 bg-[#0A1015] text-slate-200 min-h-screen overflow-hidden">
+      {/* ambient glow */}
+      <div className="pointer-events-none absolute -top-24 left-1/3 w-96 h-96 bg-[#2DD4BF]/15 blur-[120px] rounded-full" />
+      <div className="pointer-events-none absolute top-40 -right-16 w-80 h-80 bg-[#E89EAB]/12 blur-[110px] rounded-full" />
 
-      <h1 className="mt-4 text-3xl font-bold text-[#1F2937]">About the AI Resume Screener</h1>
-      <p className="mt-3 text-[#374151] leading-relaxed">
-        The AI Resume Screener is a simple web app that helps job seekers understand how well their
-        resume matches a specific job description. It uses AI to compare the two documents and gives
-        clear feedback in seconds.
-      </p>
-
-      <div className="mt-8 space-y-4">
-        {items.map((it) => (
-          <div key={it.title} className="ui-card p-6 flex gap-4">
-            <span className="shrink-0 w-9 h-9 rounded-lg bg-[#E6EEF1] text-[#0F6483] flex items-center justify-center">
-              {it.icon}
-            </span>
-            <div>
-              <h3 className="font-semibold text-[#1F2937]">{it.title}</h3>
-              <p className="mt-1 text-sm text-[#6B7280] leading-relaxed">{it.desc}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-4 ui-card p-6 bg-[#F8FAFC]">
-        <h3 className="font-semibold text-[#1F2937] text-sm">How it helps</h3>
-        <p className="mt-1.5 text-sm text-[#374151] leading-relaxed">
-          Before applying to a job, run your resume through the screener to see what to improve. This helps you
-          tailor your resume to each role and increases your chances of getting shortlisted by ATS systems and
-          recruiters.
+      <div className="relative">
+        <h1 className="mt-4 text-3xl font-bold text-white">About the AI Resume Screener</h1>
+        <p className="mt-3 text-slate-400 leading-relaxed">
+          The AI Resume Screener is a simple web app that helps job seekers understand how well their
+          resume matches a specific job description. It uses AI to compare the two documents and gives
+          clear feedback in seconds.
         </p>
+
+        <div className="mt-8 space-y-4">
+          {items.map((it, i) => (
+            <div
+              key={it.title}
+              className="rounded-2xl p-6 flex gap-4 bg-gradient-to-b from-white/[0.06] to-white/[0.02] border border-white/10 backdrop-blur-sm shadow-[0_20px_45px_-20px_rgba(0,0,0,0.6)] transition-all duration-300 hover:-translate-y-1 hover:border-white/20"
+            >
+              <span
+                className={`shrink-0 w-9 h-9 rounded-lg flex items-center justify-center shadow-md ${
+                  i % 2 === 0
+                    ? 'bg-gradient-to-br from-[#2DD4BF] to-[#0F6483] text-[#06181A]'
+                    : 'bg-gradient-to-br from-[#E89EAB] to-[#A7878D] text-[#2B1418]'
+                }`}
+              >
+                {it.icon}
+              </span>
+              <div>
+                <h3 className="font-semibold text-white">{it.title}</h3>
+                <p className="mt-1 text-sm text-slate-400 leading-relaxed">{it.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 rounded-2xl p-6 bg-gradient-to-br from-[#123645] to-[#0A1F27] border border-white/10 shadow-[0_20px_45px_-20px_rgba(0,0,0,0.6)]">
+          <h3 className="font-semibold text-white text-sm">How it helps</h3>
+          <p className="mt-1.5 text-sm text-slate-400 leading-relaxed">
+            Before applying to a job, run your resume through the screener to see what to improve. This helps you
+            tailor your resume to each role and increases your chances of getting shortlisted by ATS systems and
+            recruiters.
+          </p>
+        </div>
       </div>
     </main>
   );

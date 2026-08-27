@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from . import config
+from . import retriever
 from .groq_client import (
     AIAnalysisError,
     analyze_resume,
@@ -18,6 +19,8 @@ from .schemas import (
     FinalReportResponse,
     GenerateQuestionsRequest,
     GenerateQuestionsResponse,
+    RetrieveDebugRequest,
+    RetrieveDebugResponse,
 )
 
 app = FastAPI(title="AI Resume Screener — AI Service", version="1.0.0")
@@ -71,3 +74,14 @@ def interview_report(req: FinalReportRequest):
     except AIAnalysisError as exc:
         raise HTTPException(status_code=502, detail=str(exc))
     return result
+
+
+@app.post("/debug/retrieve", response_model=RetrieveDebugResponse)
+def debug_retrieve(req: RetrieveDebugRequest):
+    """
+    Inspect what the RAG retriever returns for a given query, without
+    calling the LLM. Useful for demos and for confirming the retrieval
+    step is actually finding relevant knowledge-base chunks.
+    """
+    chunks = retriever.retrieve(req.query, top_k=req.top_k)
+    return {"query": req.query, "chunks": chunks}

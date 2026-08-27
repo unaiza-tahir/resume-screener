@@ -14,7 +14,7 @@ export default function Navbar() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 bg-[#F3E7EC]/95 backdrop-blur-md border-b border-[#DCC4CC] shadow-sm">
+    <header className="sticky top-0 z-50 bg-[#0A1015]/90 backdrop-blur-md border-b border-white/10">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
 
         {/* Logo */}
@@ -22,11 +22,11 @@ export default function Navbar() {
           <Logo size={40} />
 
           <div>
-            <h1 className="text-xl font-bold text-[#0F6483]">
+            <h1 className="text-xl font-bold text-white">
               AI Resume Screener
             </h1>
 
-            <p className="text-xs text-[#A7878D]">
+            <p className="text-xs text-slate-400">
               Smart Career Assistant
             </p>
           </div>
@@ -42,8 +42,8 @@ export default function Navbar() {
               className={({ isActive }) =>
                 `px-4 py-2 rounded-xl font-medium transition-all duration-300 ${
                   isActive
-                    ? "bg-[#0F6483] text-white shadow-md"
-                    : "text-gray-700 hover:bg-[#F4E7EB] hover:text-[#0F6483]"
+                    ? "bg-gradient-to-b from-[#22C7B5] to-[#0F9E92] text-[#06181A] shadow-[0_8px_20px_-6px_rgba(45,212,191,0.5)]"
+                    : "text-slate-300 hover:bg-white/5 hover:text-[#5EEAD4]"
                 }`
               }
             >
@@ -56,7 +56,7 @@ export default function Navbar() {
         <div className="hidden md:block">
           <NavLink
             to="/upload"
-            className="bg-[#A7878D] hover:bg-[#96747A] text-white px-5 py-2.5 rounded-xl font-semibold transition"
+            className="bg-white/5 border border-white/15 backdrop-blur-sm hover:bg-white/10 text-white px-5 py-2.5 rounded-xl font-semibold transition-all duration-200 hover:-translate-y-0.5"
           >
             Upload Resume
           </NavLink>
@@ -64,7 +64,7 @@ export default function Navbar() {
 
         {/* Mobile Menu Button */}
         <button
-          className="md:hidden text-[#0F6483]"
+          className="md:hidden text-white"
           onClick={() => setOpen(!open)}
         >
           <svg
@@ -90,7 +90,7 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {open && (
-        <div className="md:hidden bg-[#F3E7EC] border-t border-[#DCC4CC]">
+        <div className="md:hidden bg-[#0A1015] border-t border-white/10">
 
           <div className="flex flex-col p-4 gap-2">
 
@@ -102,8 +102,8 @@ export default function Navbar() {
                 className={({ isActive }) =>
                   `px-4 py-3 rounded-xl font-medium ${
                     isActive
-                      ? "bg-[#0F6483] text-white"
-                      : "text-gray-700 hover:bg-[#F4E7EB]"
+                      ? "bg-gradient-to-b from-[#22C7B5] to-[#0F9E92] text-[#06181A]"
+                      : "text-slate-300 hover:bg-white/5"
                   }`
                 }
               >
@@ -114,7 +114,7 @@ export default function Navbar() {
             <NavLink
               to="/upload"
               onClick={() => setOpen(false)}
-              className="mt-2 bg-[#A7878D] text-white rounded-xl text-center py-3 font-semibold hover:bg-[#96747A]"
+              className="mt-2 bg-white/5 border border-white/15 text-white rounded-xl text-center py-3 font-semibold hover:bg-white/10"
             >
               Upload Resume
             </NavLink>

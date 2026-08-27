@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { jsPDF } from 'jspdf';
-import { speak, stopSpeaking, useSpeechToText } from '../hooks/useSpeech';
 import {
   PDF,
   MARGIN,
@@ -15,7 +14,6 @@ import {
   sectionTitle,
   bulletList,
   calloutBox,
-  paragraph,
 } from '../utils/pdfReport';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -23,15 +21,15 @@ const MAX_MB = 10;
 const QUESTION_SECONDS = 120;
 
 function ScoreRing({ score, size = 96, label }) {
-  const color = score >= 75 ? '#9E8B90' : score >= 50 ? '#AD6F6F' : '#DC2626';
+  const color = score >= 75 ? '#2DD4BF' : score >= 50 ? '#E89EAB' : '#F87171';
   const r = size / 2 - 8;
   const circumference = 2 * Math.PI * r;
   const offset = circumference - (score / 100) * circumference;
   return (
     <div className="flex flex-col items-center">
       <div className="relative" style={{ width: size, height: size }}>
-        <svg viewBox={`0 0 ${size} ${size}`} className="-rotate-90" width={size} height={size}>
-          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#F3F4F6" strokeWidth="8" />
+        <svg viewBox={`0 0 ${size} ${size}`} className="-rotate-90 drop-shadow-[0_4px_16px_rgba(0,0,0,0.4)]" width={size} height={size}>
+          <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="8" />
           <circle
             cx={size / 2}
             cy={size / 2}
@@ -42,14 +40,14 @@ function ScoreRing({ score, size = 96, label }) {
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={offset}
-            style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+            style={{ transition: 'stroke-dashoffset 0.6s ease', filter: `drop-shadow(0 0 6px ${color}80)` }}
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-lg font-bold text-[#1F2937]">{score}%</span>
+          <span className="text-lg font-bold text-white">{score}%</span>
         </div>
       </div>
-      {label && <span className="mt-2 text-sm font-medium text-[#374151] text-center">{label}</span>}
+      {label && <span className="mt-2 text-sm font-medium text-slate-400 text-center">{label}</span>}
     </div>
   );
 }
@@ -128,12 +126,14 @@ function downloadInterviewReport(report) {
   doc.save('interview-report.pdf');
 }
 
+const cardClass =
+  'rounded-2xl p-6 bg-gradient-to-b from-white/[0.06] to-white/[0.02] border border-white/10 backdrop-blur-sm shadow-[0_20px_45px_-20px_rgba(0,0,0,0.6)]';
+
 export default function Interview() {
   const location = useLocation();
   const passed = location.state || {};
 
   const [phase, setPhase] = useState('setup');
-  const [mode, setMode] = useState(null);
 
   const [file, setFile] = useState(passed.file || null);
   const [jobDesc, setJobDesc] = useState(passed.jobDescription || '');
@@ -151,9 +151,8 @@ export default function Interview() {
   const [timeLeft, setTimeLeft] = useState(QUESTION_SECONDS);
 
   const fileInputRef = useRef(null);
-  const speech = useSpeechToText();
 
-  const canStart = !!file && jobDesc.trim().length >= 30 && !!mode && !starting;
+  const canStart = !!file && jobDesc.trim().length >= 30 && !starting;
 
   const handleFile = (files) => {
     const f = files && files[0];
@@ -174,7 +173,7 @@ export default function Interview() {
     const formData = new FormData();
     formData.append('resume', file);
     formData.append('job_description', jobDesc.trim());
-    formData.append('mode', mode);
+    formData.append('mode', 'text');
 
     try {
       const res = await fetch(`${API_URL}/api/interview/start`, { method: 'POST', body: formData });
@@ -185,10 +184,6 @@ export default function Interview() {
       setCurrent({ index: data.index, total: data.total, question: data.question, category: data.category });
       setTimeLeft(QUESTION_SECONDS);
       setPhase('interview');
-
-      if (mode === 'voice') {
-        setTimeout(() => speak(data.question), 300);
-      }
     } catch (err) {
       setSetupError(
         err.message === 'Failed to fetch'
@@ -200,8 +195,6 @@ export default function Interview() {
     }
   };
 
-  const currentAnswer = mode === 'voice' ? speech.transcript : typedAnswer;
-
   useEffect(() => {
     if (phase !== 'interview') return;
     setTimeLeft(QUESTION_SECONDS);
@@ -210,13 +203,11 @@ export default function Interview() {
   }, [phase, current?.index]);
 
   const submitAnswer = async () => {
-    const answer = currentAnswer.trim();
+    const answer = typedAnswer.trim();
     if (!answer || submitting) return;
 
     setSubmitting(true);
     setApiError('');
-    if (mode === 'voice') speech.stop();
-    stopSpeaking();
 
     try {
       const res = await fetch(`${API_URL}/api/interview/${interviewId}/answer`, {
@@ -229,16 +220,12 @@ export default function Interview() {
 
       setLastFeedback({ score: data.questionScore, feedback: data.questionFeedback });
       setTypedAnswer('');
-      speech.reset();
 
       if (data.completed) {
         setReport(data.report);
         setPhase('report');
       } else {
         setCurrent(data.next);
-        if (mode === 'voice') {
-          setTimeout(() => speak(data.next.question), 600);
-        }
       }
     } catch (err) {
       setApiError(err.message);
@@ -251,8 +238,6 @@ export default function Interview() {
     if (ending || !interviewId) return;
     setEnding(true);
     setApiError('');
-    stopSpeaking();
-    if (mode === 'voice') speech.stop();
 
     try {
       const res = await fetch(`${API_URL}/api/interview/${interviewId}/end`, { method: 'POST' });
@@ -267,92 +252,61 @@ export default function Interview() {
     }
   };
 
-  useEffect(() => {
-    return () => stopSpeaking();
-  }, []);
-
   if (phase === 'setup') {
     return (
-      <main className="max-w-3xl mx-auto px-6 py-14 bg-white">
-        <h1 className="text-2xl sm:text-3xl font-bold text-[#1F2937]">AI Interview</h1>
-        <p className="mt-2 text-[#6B7280]">
-          Practice a real interview for this role. The AI asks questions based on your resume and the
-          job description, then gives you a scored report at the end.
-        </p>
+      <main className="relative max-w-3xl mx-auto px-6 py-14 bg-[#0A1015] text-slate-200 min-h-screen overflow-hidden">
+        <div className="pointer-events-none absolute -top-24 right-0 w-96 h-96 bg-[#0F6483]/20 blur-[120px] rounded-full" />
 
-        <div className="mt-8 ui-card p-6">
-          <h2 className="font-semibold text-[#1F2937]">1. Resume</h2>
-          {file ? (
-            <p className="mt-2 text-sm text-[#9E8B90] font-medium">{file.name}</p>
-          ) : (
-            <p className="mt-2 text-sm text-[#6B7280]">No resume selected yet.</p>
-          )}
-          <button
-            onClick={() => fileInputRef.current && fileInputRef.current.click()}
-            className="focus-ring mt-3 text-sm font-medium text-[#1F2937] bg-[#F8FAFC] hover:bg-[#F3F4F6] border border-[#E5E7EB] rounded-xl px-4 py-2 transition-colors"
-          >
-            {file ? 'Change file' : 'Upload resume (PDF or DOCX)'}
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf,.docx"
-            className="hidden"
-            onChange={(e) => handleFile(e.target.files)}
-          />
-        </div>
+        <div className="relative">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">AI Interview</h1>
+          <p className="mt-2 text-slate-400">
+            Practice a real interview for this role. The AI asks questions based on your resume and the
+            job description, then gives you a scored report at the end.
+          </p>
 
-        <div className="mt-6 ui-card p-6">
-          <h2 className="font-semibold text-[#1F2937]">2. Job Description</h2>
-          <textarea
-            value={jobDesc}
-            onChange={(e) => setJobDesc(e.target.value)}
-            placeholder="Paste the job description here..."
-            className="focus-ring mt-3 w-full h-32 resize-none rounded-xl border border-[#E5E7EB] bg-[#F8FAFC] p-4 text-sm text-[#1F2937] placeholder:text-[#9CA3AF] outline-none focus:border-[#9E8B90]"
-          />
-        </div>
-
-        <div className="mt-6 ui-card p-6">
-          <h2 className="font-semibold text-[#1F2937]">3. Interview Mode</h2>
-          <div className="mt-3 grid sm:grid-cols-2 gap-3">
+          <div className={`mt-8 ${cardClass}`}>
+            <h2 className="font-semibold text-white">1. Resume</h2>
+            {file ? (
+              <p className="mt-2 text-sm text-[#5EEAD4] font-medium">{file.name}</p>
+            ) : (
+              <p className="mt-2 text-sm text-slate-400">No resume selected yet.</p>
+            )}
             <button
-              onClick={() => setMode('text')}
-              className={`focus-ring text-left rounded-xl border p-4 transition-colors ${
-                mode === 'text' ? 'border-[#9E8B90] bg-[#ECE7E8]' : 'border-[#E5E7EB] hover:border-[#9E8B90]/40'
-              }`}
+              onClick={() => fileInputRef.current && fileInputRef.current.click()}
+              className="focus-ring mt-3 text-sm font-medium text-white bg-white/5 hover:bg-white/10 border border-white/15 rounded-xl px-4 py-2 transition-all duration-200"
             >
-              <span className="text-2xl">📝</span>
-              <p className="mt-2 font-semibold text-[#1F2937]">Text Chat Interview</p>
-              <p className="mt-1 text-xs text-[#6B7280]">Type your answers. Works everywhere.</p>
+              {file ? 'Change file' : 'Upload resume (PDF or DOCX)'}
             </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,.docx"
+              className="hidden"
+              onChange={(e) => handleFile(e.target.files)}
+            />
+          </div>
+
+          <div className={`mt-6 ${cardClass}`}>
+            <h2 className="font-semibold text-white">2. Job Description</h2>
+            <textarea
+              value={jobDesc}
+              onChange={(e) => setJobDesc(e.target.value)}
+              placeholder="Paste the job description here..."
+              className="focus-ring mt-3 w-full h-32 resize-none rounded-xl border border-white/10 bg-black/25 p-4 text-sm text-slate-200 placeholder:text-slate-500 outline-none focus:border-[#2DD4BF]/60"
+            />
+          </div>
+
+          {setupError && <p className="mt-4 text-sm text-rose-400">{setupError}</p>}
+
+          <div className="mt-8 flex justify-end">
             <button
-              onClick={() => setMode('voice')}
-              className={`focus-ring text-left rounded-xl border p-4 transition-colors ${
-                mode === 'voice' ? 'border-[#AD6F6F] bg-[#F3E3E3]' : 'border-[#E5E7EB] hover:border-[#AD6F6F]/40'
-              }`}
+              onClick={startInterview}
+              disabled={!canStart}
+              className="focus-ring bg-gradient-to-b from-[#22C7B5] to-[#0F9E92] text-[#06181A] disabled:bg-white/10 disabled:from-white/10 disabled:to-white/10 disabled:text-slate-500 disabled:shadow-none disabled:cursor-not-allowed text-sm font-semibold px-6 py-2.5 rounded-xl shadow-[0_10px_30px_-8px_rgba(45,212,191,0.6)] hover:-translate-y-0.5 transition-all duration-200"
             >
-              <span className="text-2xl">🎤</span>
-              <p className="mt-2 font-semibold text-[#1F2937]">Voice Interview</p>
-              <p className="mt-1 text-xs text-[#6B7280]">Speak your answers. Best in Chrome/Edge.</p>
+              {starting ? 'Preparing questions...' : 'Start Interview'}
             </button>
           </div>
-          {mode === 'voice' && !speech.supported && (
-            <p className="mt-3 text-sm text-amber-600">
-              Your browser doesn't support voice recognition. Try Chrome or Edge, or pick Text Chat instead.
-            </p>
-          )}
-        </div>
-
-        {setupError && <p className="mt-4 text-sm text-red-600">{setupError}</p>}
-
-        <div className="mt-8 flex justify-end">
-          <button
-            onClick={startInterview}
-            disabled={!canStart}
-            className="focus-ring btn-primary disabled:bg-[#E5E7EB] disabled:text-[#9CA3AF] disabled:cursor-not-allowed text-sm font-semibold px-6 py-2.5 rounded-xl shadow-sm transition-colors"
-          >
-            {starting ? 'Preparing questions...' : 'Start Interview'}
-          </button>
         </div>
       </main>
     );
@@ -361,106 +315,78 @@ export default function Interview() {
   if (phase === 'interview' && current) {
     const timeUp = timeLeft === 0;
     return (
-      <main className="max-w-3xl mx-auto px-6 py-14 bg-white">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-bold text-[#1F2937]">AI Interview</h1>
-          <div className="flex items-center gap-3">
-            <span
-              className={`text-sm font-mono px-2.5 py-1 rounded-lg ${
-                timeUp ? 'bg-red-50 text-red-600' : 'bg-[#F8FAFC] text-[#374151]'
-              }`}
-            >
-              ⏱ {formatTime(timeLeft)}
-            </span>
-            <span className="text-sm text-[#6B7280]">
-              Question {current.index + 1} of {current.total}
-            </span>
-          </div>
-        </div>
+      <main className="relative max-w-3xl mx-auto px-6 py-14 bg-[#0A1015] text-slate-200 min-h-screen overflow-hidden">
+        <div className="pointer-events-none absolute -top-24 right-0 w-96 h-96 bg-[#0F6483]/20 blur-[120px] rounded-full" />
 
-        <div className="mt-3 w-full h-1.5 rounded-full bg-[#F3F4F6] overflow-hidden">
-          <div
-            className="h-full bg-[#9E8B90] transition-all duration-500"
-            style={{ width: `${(current.index / current.total) * 100}%` }}
-          />
-        </div>
-
-        {lastFeedback && (
-          <div className="mt-6 bg-[#F8FAFC] border border-[#E5E7EB] rounded-xl p-4">
-            <p className="text-xs font-medium text-[#6B7280]">Previous answer &middot; {lastFeedback.score}/10</p>
-            <p className="mt-1 text-sm text-[#374151]">{lastFeedback.feedback}</p>
-          </div>
-        )}
-
-        <div className="mt-6 flex gap-3">
-          <span className="shrink-0 w-8 h-8 rounded-full bg-[#9E8B90] text-white text-xs font-bold flex items-center justify-center">AI</span>
-          <div className="ui-card p-5 flex-1">
-            <span className="text-xs font-medium uppercase tracking-wide text-[#9E8B90]">{current.category}</span>
-            <p className="mt-2 text-base font-semibold text-[#1F2937] leading-snug">{current.question}</p>
-            {mode === 'voice' && (
-              <button
-                onClick={() => speak(current.question)}
-                className="focus-ring mt-3 text-xs text-[#6B7280] hover:text-[#9E8B90] inline-flex items-center gap-1"
+        <div className="relative">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold text-white">AI Interview</h1>
+            <div className="flex items-center gap-3">
+              <span
+                className={`text-sm font-mono px-2.5 py-1 rounded-lg border ${
+                  timeUp ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' : 'bg-white/5 text-slate-300 border-white/10'
+                }`}
               >
-                🔊 Replay question
-              </button>
-            )}
+                ⏱ {formatTime(timeLeft)}
+              </span>
+              <span className="text-sm text-slate-400">
+                Question {current.index + 1} of {current.total}
+              </span>
+            </div>
           </div>
-        </div>
 
-        <div className="mt-4 flex gap-3 justify-end">
-          <div className="ui-card p-5 flex-1 bg-[#F8FAFC]">
-            {mode === 'text' ? (
+          <div className="mt-3 w-full h-1.5 rounded-full bg-white/10 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-[#2DD4BF] to-[#0F6483] transition-all duration-500"
+              style={{ width: `${(current.index / current.total) * 100}%` }}
+            />
+          </div>
+
+          {lastFeedback && (
+            <div className="mt-6 rounded-xl p-4 bg-white/[0.04] border border-white/10">
+              <p className="text-xs font-medium text-slate-400">Previous answer &middot; {lastFeedback.score}/10</p>
+              <p className="mt-1 text-sm text-slate-300">{lastFeedback.feedback}</p>
+            </div>
+          )}
+
+          <div className="mt-6 flex gap-3">
+            <span className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-[#2DD4BF] to-[#0F6483] text-[#06181A] text-xs font-bold flex items-center justify-center shadow-md">AI</span>
+            <div className={`flex-1 ${cardClass}`}>
+              <span className="text-xs font-medium uppercase tracking-wide text-[#5EEAD4]">{current.category}</span>
+              <p className="mt-2 text-base font-semibold text-white leading-snug">{current.question}</p>
+            </div>
+          </div>
+
+          <div className="mt-4 flex gap-3 justify-end">
+            <div className={`flex-1 ${cardClass}`}>
               <textarea
                 value={typedAnswer}
                 onChange={(e) => setTypedAnswer(e.target.value)}
                 placeholder="Type your answer..."
-                className="focus-ring w-full h-32 resize-none rounded-xl border border-[#E5E7EB] bg-white p-4 text-sm text-[#1F2937] placeholder:text-[#9CA3AF] outline-none focus:border-[#9E8B90]"
+                className="focus-ring w-full h-32 resize-none rounded-xl border border-white/10 bg-black/25 p-4 text-sm text-slate-200 placeholder:text-slate-500 outline-none focus:border-[#2DD4BF]/60"
               />
-            ) : (
-              <div>
-                <div className="min-h-24 rounded-xl border border-[#E5E7EB] bg-white p-4 text-sm text-[#1F2937]">
-                  {speech.transcript || (
-                    <span className="text-[#9CA3AF]">
-                      {speech.listening ? 'Listening...' : 'Press the mic and start speaking.'}
-                    </span>
-                  )}
-                </div>
-                {speech.error && <p className="mt-2 text-sm text-red-600">{speech.error}</p>}
+
+              {apiError && <p className="mt-3 text-sm text-rose-400">{apiError}</p>}
+
+              <div className="mt-4 flex flex-wrap justify-between items-center gap-3">
                 <button
-                  onClick={speech.listening ? speech.stop : speech.start}
-                  disabled={!speech.supported}
-                  className={`focus-ring mt-3 inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors disabled:opacity-40 ${
-                    speech.listening
-                      ? 'bg-red-50 text-red-600 border border-red-200'
-                      : 'bg-white text-[#1F2937] border border-[#E5E7EB] hover:border-[#9E8B90]'
-                  }`}
+                  onClick={endInterview}
+                  disabled={ending}
+                  className="focus-ring text-sm font-medium text-slate-400 hover:text-rose-400 transition-colors disabled:opacity-50"
                 >
-                  {speech.listening ? '⏹ Stop recording' : '🎤 Start speaking'}
+                  {ending ? 'Ending...' : 'End Interview'}
+                </button>
+                <button
+                  onClick={submitAnswer}
+                  disabled={!typedAnswer.trim() || submitting}
+                  className="focus-ring bg-gradient-to-b from-[#22C7B5] to-[#0F9E92] text-[#06181A] disabled:bg-white/10 disabled:from-white/10 disabled:to-white/10 disabled:text-slate-500 disabled:shadow-none disabled:cursor-not-allowed text-sm font-semibold px-6 py-2.5 rounded-xl shadow-[0_10px_30px_-8px_rgba(45,212,191,0.6)] hover:-translate-y-0.5 transition-all duration-200"
+                >
+                  {submitting ? 'Evaluating...' : 'Next Question →'}
                 </button>
               </div>
-            )}
-
-            {apiError && <p className="mt-3 text-sm text-red-600">{apiError}</p>}
-
-            <div className="mt-4 flex flex-wrap justify-between items-center gap-3">
-              <button
-                onClick={endInterview}
-                disabled={ending}
-                className="focus-ring text-sm font-medium text-[#6B7280] hover:text-red-600 transition-colors disabled:opacity-50"
-              >
-                {ending ? 'Ending...' : 'End Interview'}
-              </button>
-              <button
-                onClick={submitAnswer}
-                disabled={!currentAnswer.trim() || submitting}
-                className="focus-ring btn-primary disabled:bg-[#E5E7EB] disabled:text-[#9CA3AF] disabled:cursor-not-allowed text-sm font-semibold px-6 py-2.5 rounded-xl shadow-sm transition-colors"
-              >
-                {submitting ? 'Evaluating...' : 'Next Question →'}
-              </button>
             </div>
+            <span className="shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-[#E89EAB] to-[#A7878D] text-[#2B1418] text-xs font-bold flex items-center justify-center shadow-md">You</span>
           </div>
-          <span className="shrink-0 w-8 h-8 rounded-full bg-[#AD6F6F] text-white text-xs font-bold flex items-center justify-center">You</span>
         </div>
       </main>
     );
@@ -468,72 +394,76 @@ export default function Interview() {
 
   if (phase === 'report' && report) {
     return (
-      <main className="max-w-3xl mx-auto px-6 py-14 bg-white">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-[#1F2937]">Interview Report</h1>
-            <p className="mt-2 text-[#6B7280]">Here's how you did.</p>
-          </div>
-          <button
-            onClick={() => downloadInterviewReport(report)}
-            className="focus-ring inline-flex items-center gap-2 bg-white border border-[#E5E7EB] hover:border-[#9E8B90] text-[#1F2937] text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M7 10l5 5 5-5" /><path d="M12 15V3" />
-            </svg>
-            Download PDF
-          </button>
-        </div>
+      <main className="relative max-w-3xl mx-auto px-6 py-14 bg-[#0A1015] text-slate-200 min-h-screen overflow-hidden">
+        <div className="pointer-events-none absolute -top-24 right-0 w-96 h-96 bg-[#0F6483]/20 blur-[120px] rounded-full" />
 
-        <div className="mt-8 ui-card p-6">
-          <div className="grid sm:grid-cols-4 gap-6">
-            <ScoreRing score={report.overallScore} label="Overall" size={100} />
-            <ScoreRing score={report.communicationScore} label="Communication" />
-            <ScoreRing score={report.technicalScore} label="Technical" />
-            <ScoreRing score={report.confidenceScore} label="Confidence" />
-          </div>
-          <p className="mt-6 text-sm text-[#374151] leading-relaxed border-t border-[#E5E7EB] pt-5">{report.summary}</p>
-        </div>
-
-        <div className="mt-6 grid md:grid-cols-2 gap-6">
-          <div className="ui-card p-6">
-            <h3 className="font-semibold text-[#1F2937] mb-3">Strengths</h3>
-            <ul className="space-y-2">
-              {report.strengths.map((s, i) => (
-                <li key={i} className="text-sm text-[#374151]">✅ {s}</li>
-              ))}
-            </ul>
-          </div>
-          <div className="ui-card p-6">
-            <h3 className="font-semibold text-[#1F2937] mb-3">Areas to Improve</h3>
-            <ul className="space-y-2">
-              {report.improvements.map((s, i) => (
-                <li key={i} className="text-sm text-[#374151]">💡 {s}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        <div className="mt-6 space-y-3">
-          <h3 className="font-semibold text-[#1F2937]">Question-by-Question Breakdown</h3>
-          {report.questions.filter((q) => q.answer).map((q, i) => (
-            <div key={i} className="ui-card p-4">
-              <div className="flex items-start justify-between gap-4">
-                <p className="text-sm font-medium text-[#1F2937]">{q.question}</p>
-                <span className="shrink-0 text-xs font-semibold text-[#9E8B90]">{q.score}/10</span>
-              </div>
-              <p className="mt-2 text-xs text-[#6B7280]">{q.feedback}</p>
+        <div className="relative">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white">Interview Report</h1>
+              <p className="mt-2 text-slate-400">Here's how you did.</p>
             </div>
-          ))}
-        </div>
+            <button
+              onClick={() => downloadInterviewReport(report)}
+              className="focus-ring inline-flex items-center gap-2 bg-white/5 border border-white/15 backdrop-blur-sm hover:bg-white/10 hover:border-[#2DD4BF]/40 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-all duration-200"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M7 10l5 5 5-5" /><path d="M12 15V3" />
+              </svg>
+              Download PDF
+            </button>
+          </div>
 
-        <div className="mt-8 flex justify-end">
-          <button
-            onClick={() => window.location.reload()}
-            className="focus-ring bg-white border border-[#E5E7EB] hover:border-[#9E8B90] text-[#1F2937] text-sm font-semibold px-6 py-2.5 rounded-xl transition-colors"
-          >
-            Start a New Interview
-          </button>
+          <div className={`mt-8 ${cardClass}`}>
+            <div className="grid sm:grid-cols-4 gap-6">
+              <ScoreRing score={report.overallScore} label="Overall" size={100} />
+              <ScoreRing score={report.communicationScore} label="Communication" />
+              <ScoreRing score={report.technicalScore} label="Technical" />
+              <ScoreRing score={report.confidenceScore} label="Confidence" />
+            </div>
+            <p className="mt-6 text-sm text-slate-300 leading-relaxed border-t border-white/10 pt-5">{report.summary}</p>
+          </div>
+
+          <div className="mt-6 grid md:grid-cols-2 gap-6">
+            <div className={cardClass}>
+              <h3 className="font-semibold text-white mb-3">Strengths</h3>
+              <ul className="space-y-2">
+                {report.strengths.map((s, i) => (
+                  <li key={i} className="text-sm text-slate-300">✅ {s}</li>
+                ))}
+              </ul>
+            </div>
+            <div className={cardClass}>
+              <h3 className="font-semibold text-white mb-3">Areas to Improve</h3>
+              <ul className="space-y-2">
+                {report.improvements.map((s, i) => (
+                  <li key={i} className="text-sm text-slate-300">💡 {s}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            <h3 className="font-semibold text-white">Question-by-Question Breakdown</h3>
+            {report.questions.filter((q) => q.answer).map((q, i) => (
+              <div key={i} className="rounded-2xl p-4 bg-gradient-to-b from-white/[0.06] to-white/[0.02] border border-white/10 backdrop-blur-sm">
+                <div className="flex items-start justify-between gap-4">
+                  <p className="text-sm font-medium text-white">{q.question}</p>
+                  <span className="shrink-0 text-xs font-semibold text-[#5EEAD4]">{q.score}/10</span>
+                </div>
+                <p className="mt-2 text-xs text-slate-400">{q.feedback}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 flex justify-end">
+            <button
+              onClick={() => window.location.reload()}
+              className="focus-ring bg-white/5 border border-white/15 backdrop-blur-sm hover:bg-white/10 text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition-all duration-200 hover:-translate-y-0.5"
+            >
+              Start a New Interview
+            </button>
+          </div>
         </div>
       </main>
     );
