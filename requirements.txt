@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 anyio==4.14.1
 fastapi==0.139.0
 groq==1.5.0
@@ -10,3 +11,10 @@ starlette==1.3.1
 uvicorn==0.50.0
 scikit-learn==1.7.0
 numpy==2.1.3
+=======
+streamlit
+pdfplumber
+groq
+python-dotenv
+fpdf2
+>>>>>>> fc1bc1f7b4b1faa763be0d08f690714796e9bbbd
